@@ -1,3 +1,5 @@
+obj-m += test-cpuidle_latency.o
+
 KDIR ?= /lib/modules/`uname -r`/build
 
 default:
