@@ -7,7 +7,11 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 
-/* IPI based wakeup latencies */
+/*
+ * IPI based wakeup latencies
+ * Measure time taken for a CPU to wakeup on a IPI sent from another CPU
+ * The latency measured also includes the latency of sending the IPI
+ */
 struct latency {
 	unsigned int src_cpu;
 	unsigned int dest_cpu;
@@ -35,7 +39,10 @@ void run_smp_call_function_test(unsigned int cpu)
 	smp_call_function_single(cpu, measure_latency, &ipi_wakeup, 1);
 }
 
-/* Timer based wakeup latencies */
+/*
+ * Timer based wakeup latencies
+ * Measure time taken for a CPU to wakeup on a timer being armed and fired
+ */
 struct timer_data {
 	unsigned int src_cpu;
 	u64 timeout;
@@ -64,9 +71,9 @@ static void run_timer_test(unsigned int ns)
 	hrtimer_init(&timer_wakeup.timer, CLOCK_MONOTONIC,
 		     HRTIMER_MODE_REL);
 	timer_wakeup.timer.function = timer_called;
-	timer_wakeup.time_start = ktime_get();
 	timer_wakeup.src_cpu = smp_processor_id();
 	timer_wakeup.timeout = ns;
+	timer_wakeup.time_start = ktime_get();
 
 	hrtimer_start(&timer_wakeup.timer, ns_to_ktime(ns),
 		      HRTIMER_MODE_REL_PINNED);
@@ -74,9 +81,9 @@ static void run_timer_test(unsigned int ns)
 
 static struct dentry *dir;
 
-static int cpu_read_op(void *data, u64 *value)
+static int cpu_read_op(void *data, u64 *dest_cpu)
 {
-	*value = ipi_wakeup.dest_cpu;
+	*dest_cpu = ipi_wakeup.dest_cpu;
 	return 0;
 }
 
@@ -87,9 +94,9 @@ static int cpu_write_op(void *data, u64 value)
 }
 DEFINE_SIMPLE_ATTRIBUTE(ipi_ops, cpu_read_op, cpu_write_op, "%llu\n");
 
-static int timeout_read_op(void *data, u64 *value)
+static int timeout_read_op(void *data, u64 *timeout)
 {
-	*value = timer_wakeup.timeout;
+	*timeout = timer_wakeup.timeout;
 	return 0;
 }
 
