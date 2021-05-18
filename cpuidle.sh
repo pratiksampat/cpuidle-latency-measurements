@@ -144,6 +144,15 @@ op_cpuidle()
 	done
 }
 
+extract_state_information()
+{
+	for ((state=0; state<NUM_STATES; state++))
+	do
+		state_name=$(cat /sys/devices/system/cpu/cpu0/cpuidle/state$state/name)
+		state_name_arr+=($state_name)
+	done
+}
+
 # Extract latency in microseconds and convert to nanoseconds
 extract_latency()
 {
@@ -276,7 +285,7 @@ run_ipi_tests()
 	for ((state=0; state<NUM_STATES; state++))
 	do
 		unset avg_arr
-		echo -e "---Enabling state: $state---" >> $LOG
+		echo -e "---Enabling state: ${state_name_arr[$state]}---" >> $LOG
 		cpuidle_enable_state $state
 		printf "%s %10s %12s\n" "SRC_CPU" "DEST_CPU" "IPI_Latency(ns)" >> $LOG
 		for cpu in "${core_arr[@]}"
@@ -298,7 +307,7 @@ run_ipi_tests()
 		done
 		compute_average "${avg_arr[@]}"
 		echo -e "Expected IPI latency(ns): ${latency_arr[$state]}" >> $LOG
-		echo -e "Observed Avg IPI latency(ns) - State $state: $avg" | tee -a $LOG
+		echo -e "Observed Avg IPI latency(ns) - State ${state_name_arr[$state]}: $avg" | tee -a $LOG
 		cpuidle_disable_state $state
 	done
 }
@@ -366,7 +375,7 @@ run_timeout_tests()
 	for ((state=0; state<NUM_STATES; state++))
 	do
 		unset avg_arr
-		echo -e "---Enabling state: $state---" >> $LOG
+		echo -e "---Enabling state: ${state_name_arr[$state]}---" >> $LOG
 		cpuidle_enable_state $state
 		printf "%s %10s %10s\n" "Wakeup_src" "Baseline_delay(ns)" "Delay(ns)" >> $LOG
 		for cpu in "${core_arr[@]}"
@@ -381,7 +390,7 @@ run_timeout_tests()
 		done
 		compute_average "${avg_arr[@]}"
 		echo -e "Expected timeout(ns): ${residency_arr[$state]}" >> $LOG
-		echo -e "Observed Avg timeout diff(ns) - State $state: $avg" | tee -a $LOG
+		echo -e "Observed Avg timeout diff(ns) - State ${state_name_arr[$state]}: $avg" | tee -a $LOG
 		cpuidle_disable_state $state
 	done
 }
@@ -390,6 +399,7 @@ declare -a residency_arr
 declare -a latency_arr
 declare -a core_arr
 declare -a first_core_arr
+declare -a state_name_arr
 
 parse_arguments $@
 
@@ -399,6 +409,7 @@ NUM_CPUS=$(nproc --all)
 NUM_STATES=$(ls -1 /sys/devices/system/cpu/cpu0/cpuidle/ | wc -l)
 
 extract_core_information
+extract_state_information
 
 ins_mod $MODULE
 
