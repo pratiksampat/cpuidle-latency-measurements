@@ -68,9 +68,8 @@ static enum hrtimer_restart timer_called(struct hrtimer *hrtimer)
 
 static void run_timer_test(unsigned int ns)
 {
-	hrtimer_init(&timer_wakeup.timer, CLOCK_MONOTONIC,
-		     HRTIMER_MODE_REL);
-	timer_wakeup.timer.function = timer_called;
+	hrtimer_setup(&timer_wakeup.timer, timer_called,  CLOCK_MONOTONIC,
+                     HRTIMER_MODE_REL);
 	timer_wakeup.src_cpu = smp_processor_id();
 	timer_wakeup.timeout = ns;
 	timer_wakeup.time_start = ktime_get();
